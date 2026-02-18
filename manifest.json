@@ -24,5 +24,22 @@
   ],
   "permissions": [
     "storage"
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{417d2ba0-ecf4-49d0-91de-78c5181c8969}"
+    },
+    "data_collection_permissions": {
+      "storage": {
+        "description": "Stores config for user preferences and settings."
+      },
+      "websiteContent": {
+        "description": "Reads text content from DuckDuckGo search results to identify location-related queries and modify the page accordingly.",
+        "required": true,
+        "dataTypes": [
+            "Text content of DuckDuckGo search results pages"
+        ]
+      }
+    }
+  }
 }
