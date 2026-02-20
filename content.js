@@ -59,8 +59,9 @@ const findInteractiveMapObserver = new MutationObserver((mutations) => {
                     updateDirectionsInteractiveMap(directionsInteractiveMap);
                 }
                 if (bodyNode.getAttribute("data-testid") === "about-map") {
-                    let blurbInteractiveMap = bodyNode.closest("[class=\"react-module\"]");
-                    // console.log("Found info blurb map container:", blurbInteractiveMap);
+                    let blurbMap = bodyNode.closest("[class=\"react-module\"]");
+                    // console.log("Found info blurb map container:", blurbMap);
+                    updateBlurbMap(blurbMap);
                 }
             }
         }
@@ -215,4 +216,29 @@ function getFromToDirectionsLink(directionsMapContainer) {
     let toLocationInput = locationInputs[1];
     let directionsLink = `${googleMapsDirectionUrl}${encodeURIComponent(toLocationInput.value)}&origin=${encodeURIComponent(fromLocationInput.value)}`;
     return directionsLink;
+}
+
+function updateBlurbMap(outerNode) {
+    // ! Doesn't replace completely so both events are triggered
+    const query = new URLSearchParams(window.location.search).get("q") || "";
+    let mapsLink = `${googleMapsSearchUrl}${encodeURIComponent(query)}`;
+
+    let mapCanvas = outerNode.querySelector("img");
+    let newMapCanvas = mapCanvas.cloneNode(true);
+
+    newMapCanvas.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.open(mapsLink, "_self");
+    });
+    mapCanvas.parentNode.replaceChild(newMapCanvas, mapCanvas);
+
+
+    let directionsButton = outerNode.querySelector("button");
+    let newDirectionsButton = directionsButton.cloneNode(true);
+
+    newDirectionsButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.open(mapsLink, "_self");
+    });
+    directionsButton.parentNode.replaceChild(newDirectionsButton, directionsButton);
 }
