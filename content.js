@@ -9,6 +9,9 @@ const mapsTabObserver = new MutationObserver((mutations) => {
     for (let mutation of mutations) {
         if (mutation.type === "childList") {
             for (let outerTab of mutation.addedNodes) {
+                if (outerTab.nodeType !== Node.ELEMENT_NODE) {
+                    continue;
+                }
                 if (outerTab.innerText === "Maps") {
                     // console.log("Found Maps tab:", outerTab);
                     updateOuterTabMapsLink(outerTab);
@@ -37,17 +40,27 @@ mapsTabObserver.observe(toolbarContainer, { childList: true, subtree: true });
 
 // Replace links in interactive map and directions button
 let duckduckgoSearchBody = document.getElementById("react-layout");
-let interactiveMapContainer = null;
-console.log("Found DuckDuckGo search body:", duckduckgoSearchBody);
+// console.log("Found DuckDuckGo search body:", duckduckgoSearchBody);
 // For the interactive map and directions button
 const findInteractiveMapObserver = new MutationObserver((mutations) => {
     for (let mutation of mutations) {
         if (mutation.type === "childList") {
             for (let bodyNode of mutation.addedNodes) {
-                if (bodyNode.getAttribute("data-react-module-id") === "maps_maps") {
-                    // console.log("Found interactive map:", bodyNode);
-                    interactiveMapContainer = bodyNode;
-                    waitForInteractiveMap(bodyNode);
+                if (bodyNode.nodeType !== Node.ELEMENT_NODE) {
+                    continue;
+                }
+                // console.log("Checking added node for interactive map:", bodyNode);
+                if (bodyNode.className === "react-module" && bodyNode.getAttribute("data-react-module-id") === "maps_maps") {
+                    console.log("Found simple map container (no description, no editing):", bodyNode);
+                    waitForSimpleMap(bodyNode);
+                }
+                if (bodyNode.className === "mk-map-node-element") {
+                    let directionsInteractiveMap = bodyNode.closest("[class=\"react-module\"]");
+                    console.log("Found interactive directions map container", directionsInteractiveMap);
+                }
+                if (bodyNode.getAttribute("data-testid") === "about-map") {
+                    let blurbInteractiveMap = bodyNode.closest("[class=\"react-module\"]");
+                    console.log("Found info blurb map container:", blurbInteractiveMap);
                 }
             }
         }
@@ -55,19 +68,21 @@ const findInteractiveMapObserver = new MutationObserver((mutations) => {
 });
 findInteractiveMapObserver.observe(duckduckgoSearchBody, { childList: true, subtree: true });
 
-function waitForInteractiveMap(interactiveMapContainer) {
-    interactiveMapObserver.observe(interactiveMapContainer, { childList: true, subtree: true });
+function waitForSimpleMap(mapContainer) {
+    simpleMapObserver.observe(mapContainer, { childList: true, subtree: true });
     findInteractiveMapObserver.disconnect();
 }
 
-const interactiveMapObserver = new MutationObserver((mutations) => {
+const simpleMapObserver = new MutationObserver((mutations) => {
     for (let mutation of mutations) {
         if (mutation.type === "childList") {
             for (let mapNode of mutation.addedNodes) {
-                if (mapNode.tagName === "IMG") {
-                    // TODO: maybe find a better way to check if map is fully loaded
-                    // console.log("Found interactive map image element:", mapNode); // Seems to be the last element added
-                    updateInteractiveMap(interactiveMapContainer);
+                if (mapNode.nodeType !== Node.ELEMENT_NODE) {
+                    continue;
+                }
+                if (mapNode.querySelector("a") && mapNode.querySelector("button")) {
+                    console.log("Found interactive map image element:", mapNode); // Seems to be the last element added
+                    updateSimpleMap(mapNode);
                     break;
                 }
             }
@@ -76,6 +91,8 @@ const interactiveMapObserver = new MutationObserver((mutations) => {
 });
 
 function updateMapsLink(mapsTabContainer) {
+    mapsTabObserver.disconnect();
+
     let newMapsTab = mapsTabContainer.cloneNode(true);
 
     const query = new URLSearchParams(window.location.search).get("q") || "";
@@ -83,15 +100,15 @@ function updateMapsLink(mapsTabContainer) {
 
     console.log("Updating Maps tab link to:", mapsLink);
     newMapsTab.href = mapsLink;
-    console.log(newMapsTab);
+    // console.log(newMapsTab);
 
     mapsTabContainer.parentNode.replaceChild(newMapsTab, mapsTabContainer);
-
-    mapsTabObserver.disconnect();
 }
 
 function updateOuterTabMapsLink(outerTab) {
-    let mapsTab = outerTab.firstChild;
+    mapsTabObserver.disconnect();
+
+    let mapsTab = outerTab.getElementsByTagName("a")[0];
     let newMapsTab = mapsTab.cloneNode(true);
 
     const query = new URLSearchParams(window.location.search).get("q") || "";
@@ -99,14 +116,14 @@ function updateOuterTabMapsLink(outerTab) {
     
     console.log("Updating Maps tab link to:", mapsLink);
     newMapsTab.href = mapsLink;
-    console.log(newMapsTab);
+    // console.log(newMapsTab);
 
     outerTab.replaceChild(newMapsTab, mapsTab);
-
-    mapsTabObserver.disconnect();
 }
 
 function updateMapsLinkInMoreSubmenu(mapsTabContainer) {
+    mapsTabObserver.disconnect();
+
     let newMapsTab = mapsTabContainer.cloneNode(true);
 
     const query = new URLSearchParams(window.location.search).get("q") || "";
@@ -115,29 +132,29 @@ function updateMapsLinkInMoreSubmenu(mapsTabContainer) {
     let mapsLinkContainer = newMapsTab.getElementsByTagName("a")[0];
     console.log("Updating Maps tab in More submenu link to:", mapsLink);
     mapsLinkContainer.href = mapsLink;
-    console.log(newMapsTab);
+    // console.log(newMapsTab);
 
     mapsTabContainer.parentNode.replaceChild(newMapsTab, mapsTabContainer);
-
-    mapsTabObserver.disconnect();
 }
 
-function updateInteractiveMap(outerNode) {
-    let interactiveMap = outerNode.firstChild.firstChild;
-    if (!interactiveMap) {
-        console.log("Could not find interactive map element inside:", outerNode);
+function updateSimpleMap(outerNode) {
+    simpleMapObserver.disconnect();
+
+    let simpleMap = outerNode.firstChild;
+    if (!simpleMap) {
+        console.log("Could not find simple map element inside:", outerNode);
         return;
     }
-    let newInteractiveMap = interactiveMap.cloneNode(true);
+    let newSimpleMap = simpleMap.cloneNode(true);
 
     const query = new URLSearchParams(window.location.search).get("q") || "";
     let mapsLink = `${googleMapsSearchUrl}${encodeURIComponent(query)}`;
     let directionsLink = `${googleMapsDirectionUrl}${encodeURIComponent(query)}`;
 
-    console.log("Updating interactive map links to:", mapsLink, directionsLink);
-    let expandButton = newInteractiveMap.querySelector("a");
-    let directionsButton = newInteractiveMap.querySelector("button");
-    newInteractiveMap.addEventListener("click", (e) => {
+    console.log("Updating simple map links to:", mapsLink, directionsLink);
+    let expandButton = newSimpleMap.querySelector("a");
+    let directionsButton = newSimpleMap.querySelector("button");
+    newSimpleMap.addEventListener("click", (e) => {
         e.preventDefault();
         if (e.target.tagName === "BUTTON") {
             window.open(directionsLink, "_self");
@@ -145,11 +162,19 @@ function updateInteractiveMap(outerNode) {
             window.open(mapsLink, "_self");
         }
     });
-    console.log("Updating interactive map expand button", mapsLink);
+    console.log("Updating simple map expand button", mapsLink);
     expandButton.href = mapsLink;
-    console.log(newInteractiveMap);
+    console.log(newSimpleMap);
 
-    interactiveMap.parentNode.replaceChild(newInteractiveMap, interactiveMap);
+    simpleMap.parentNode.replaceChild(newSimpleMap, simpleMap);
+}
 
-    findInteractiveMapObserver.disconnect();
+function updateDirectionsInteractiveMap(outerNode) {
+    simpleMapObserver.disconnect();
+    
+    let interactiveMap = outerNode.firstChild.firstChild;
+    if (!interactiveMap) {
+        console.log("Could not find interactive map element inside:", outerNode);
+        return;
+    }
 }
