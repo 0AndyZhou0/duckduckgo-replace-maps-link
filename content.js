@@ -1,8 +1,6 @@
 const googleMapsSearchUrl = "https://google.com/maps?q=";
 const googleMapsDirectionUrl = "https://google.com/maps/dir/?api=1&destination=";
 
-let toolbarContainer = document.getElementById("react-duckbar");
-let tabsContainer = null;
 
 // Replace Maps in tab bar
 const mapsTabObserver = new MutationObserver((mutations) => {
@@ -16,7 +14,7 @@ const mapsTabObserver = new MutationObserver((mutations) => {
                     // console.log("Found Maps tab:", outerTab);
                     updateOuterTabMapsLink(outerTab);
                 }
-
+                
                 if (outerTab.innerText && outerTab.innerText.includes("Maps") && outerTab.innerText.includes("More")) {
                     // console.log("Found Maps tab in More submenu:", outerTab);
                     let currNode = outerTab;
@@ -35,6 +33,7 @@ const mapsTabObserver = new MutationObserver((mutations) => {
     }
 });
 // Changes link in tab bar
+let toolbarContainer = document.getElementById("react-duckbar");
 mapsTabObserver.observe(toolbarContainer, { childList: true, subtree: true });
 
 
@@ -51,16 +50,17 @@ const findInteractiveMapObserver = new MutationObserver((mutations) => {
                 }
                 // console.log("Checking added node for interactive map:", bodyNode);
                 if (bodyNode.className === "react-module" && bodyNode.getAttribute("data-react-module-id") === "maps_maps") {
-                    console.log("Found simple map container (no description, no editing):", bodyNode);
+                    // console.log("Found simple map container (no description, no editing):", bodyNode);
                     waitForSimpleMap(bodyNode);
                 }
                 if (bodyNode.className === "mk-map-node-element") {
                     let directionsInteractiveMap = bodyNode.closest("[class=\"react-module\"]");
-                    console.log("Found interactive directions map container", directionsInteractiveMap);
+                    // console.log("Found interactive directions map container", directionsInteractiveMap);
+                    updateDirectionsInteractiveMap(directionsInteractiveMap);
                 }
                 if (bodyNode.getAttribute("data-testid") === "about-map") {
                     let blurbInteractiveMap = bodyNode.closest("[class=\"react-module\"]");
-                    console.log("Found info blurb map container:", blurbInteractiveMap);
+                    // console.log("Found info blurb map container:", blurbInteractiveMap);
                 }
             }
         }
@@ -170,11 +170,49 @@ function updateSimpleMap(outerNode) {
 }
 
 function updateDirectionsInteractiveMap(outerNode) {
-    simpleMapObserver.disconnect();
+    findInteractiveMapObserver.disconnect();
     
-    let interactiveMap = outerNode.firstChild.firstChild;
-    if (!interactiveMap) {
-        console.log("Could not find interactive map element inside:", outerNode);
-        return;
-    }
+    let mapCanvas = outerNode.querySelector("canvas");
+    let mapCanvasContainer = mapCanvas.parentNode.parentNode.parentNode;
+    // console.log("mapCanvasContainer:", mapCanvasContainer);
+    let newMapCanvasContainer = mapCanvasContainer.cloneNode(false);
+
+    // ! Doesn't replace link but instead adds listener on top.
+    // newMapCanvasContainer.addEventListener("click", (e) => {
+    mapCanvasContainer.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(getFromToDirectionsLink(outerNode), "_self");
+    });
+    // mapCanvasContainer.parentNode.replaceChild(newMapCanvasContainer, mapCanvasContainer);
+
+    let footer = outerNode.querySelector("footer");
+    // let newFooter = footer.cloneNode(true);
+    let directionsButton = footer.querySelector("a");
+    let directionsButtonContainer = directionsButton.parentNode;
+    let newDirectionsButtonContainer = directionsButtonContainer.cloneNode(true);
+    let newDirectionsButton = newDirectionsButtonContainer.querySelector("a");
+    newDirectionsButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(getFromToDirectionsLink(outerNode), "_self");
+    });
+    newDirectionsButton.addEventListener("mouseup", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.button === 1) { // Middle click
+            window.open(getFromToDirectionsLink(outerNode), "_blank");
+        }
+    });
+    directionsButtonContainer.parentNode.replaceChild(newDirectionsButtonContainer, directionsButtonContainer);
+    
+    // TODO: replace integrated map completely with google embed maybe
+}
+
+function getFromToDirectionsLink(directionsMapContainer) {
+    let locationInputs = directionsMapContainer.querySelectorAll("input");
+    let fromLocationInput = locationInputs[0];
+    let toLocationInput = locationInputs[1];
+    let directionsLink = `${googleMapsDirectionUrl}${encodeURIComponent(toLocationInput.value)}&origin=${encodeURIComponent(fromLocationInput.value)}`;
+    return directionsLink;
 }
