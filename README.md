@@ -1,4 +1,19 @@
 # duckduckgo-replace-maps-link
 Replaces apple maps with google maps in the duckduckgo search engine.
 
-TODO: not hardcode all the layouts as they are subject to change.
+Done:
+- Tab bar on top of the page
+- Simple map with directions button
+<img width="679" height="408" alt="image" src="https://github.com/user-attachments/assets/2cd2e1cc-49d9-485e-ba00-85db2df35b96" />
+
+
+Issues: 
+- The info blurb opens both old and new links currently
+<img width="668" height="536" alt="image" src="https://github.com/user-attachments/assets/ba43e86d-bc52-4066-ad13-c081bfc1c6dd" />
+
+- Can't replace directions map without breaking it (this still works reasonably well though)
+<img width="663" height="449" alt="image" src="https://github.com/user-attachments/assets/976e5f69-e1c7-4e76-9d84-032e62e0be80" />
+
+
+TODO: 
+- not hard code all the layouts as they are subject to change.
