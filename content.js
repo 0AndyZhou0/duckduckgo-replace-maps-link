@@ -31,20 +31,30 @@ function main() {
     }
 
     function tryGetDirectionsLink(target) {
-        const directionsLink = target.closest('[class="mk-map-node-element"], a[href*="iaxm=directions"], a[href*="ia=directions"]');
-        const directionsButton = target.closest('[class="mk-map-node-element"], button[href*="iaxm=directions"], button[href*="ia=directions"]');
-        if (directionsLink || directionsButton) {
+        const directionsMap = target.closest('[class="mk-map-node-element"]');
+        const directionsLink = target.closest('a[href*="iaxm=directions"], a[href*="ia=directions"]');
+        const directionsButton = target.closest('button[href*="iaxm=directions"], button[href*="ia=directions"]');
+        if (directionsMap || directionsLink || directionsButton) {
             let start = null;
             let end = null;
             let transport = null;
 
             let linkUrl = null;
+
+            console.log("Found directions element:", {directionsButton, directionsLink, directionsMap});
             
             if (directionsButton && directionsButton.getAttribute('href')) {
                 linkUrl = new URL(document.location.origin + directionsButton.getAttribute('href'));
             } else if (directionsLink && directionsLink.href) {
                 linkUrl = new URL(directionsLink.href);
+            } else if (directionsMap) {
+                const mapLink = document.querySelector('a[href*="iaxm=directions"], a[href*="ia=directions"]');
+                console.log("Found map link inside directions map element:", mapLink);
+                if (mapLink && mapLink.href) {
+                    linkUrl = new URL(mapLink.href);
+                }
             }
+
 
             if (linkUrl) {
                 start = linkUrl.searchParams.get('start');
