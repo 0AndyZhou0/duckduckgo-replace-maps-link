@@ -1,0 +1,12 @@
+{
+  "summary": {
+    "en-US": "Redirects Maps links on DuckDuckGo Search to Google Maps"
+  },
+  "categories": { 
+    "firefox": ["search-tools"]
+  },
+  "version": {
+    "license": "GPL-2.0-only"
+  },
+  "requires_payment": false
+}
