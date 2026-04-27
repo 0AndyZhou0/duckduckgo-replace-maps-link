@@ -31,23 +31,25 @@ function main() {
     }
 
     function tryGetDirectionsLink(target) {
-        const directionsButton = target.closest('[data-zci-link="directions"], button[href*="iaxm=directions"], button[href*="ia=directions"]');
-        if (directionsButton) {
-            let source = null;
+        const directionsLink = target.closest('[class="mk-map-node-element"], a[href*="iaxm=directions"], a[href*="ia=directions"]');
+        const directionsButton = target.closest('[class="mk-map-node-element"], button[href*="iaxm=directions"], button[href*="ia=directions"]');
+        if (directionsLink || directionsButton) {
+            let start = null;
             let end = null;
             let transport = null;
-            
-            if (directionsButton.getAttribute('href')) {
-                const linkUrl = new URL(document.location.origin + directionsButton.getAttribute('href'));
 
-                source = linkUrl.searchParams.get('source');
-                end = linkUrl.searchParams.get('end');
-                transport = linkUrl.searchParams.get('transport');
+            let linkUrl = null;
+            
+            if (directionsButton && directionsButton.getAttribute('href')) {
+                linkUrl = new URL(document.location.origin + directionsButton.getAttribute('href'));
+            } else if (directionsLink && directionsLink.href) {
+                linkUrl = new URL(directionsLink.href);
             }
 
-            // Prevent default duckduckgo source
-            if (source === "directions") {
-                source = null;
+            if (linkUrl) {
+                start = linkUrl.searchParams.get('start');
+                end = linkUrl.searchParams.get('end');
+                transport = linkUrl.searchParams.get('transport');
             }
 
             // Get query from URL if not found in link
@@ -57,8 +59,8 @@ function main() {
             
             if (end) {
                 let url = googleMapsDirectionUrl;
-                if (source) {
-                    url += "&origin=" + encodeURIComponent(source);
+                if (start) {
+                    url += "&origin=" + encodeURIComponent(start);
                 }
                 if (end) {
                     url += "&destination=" + encodeURIComponent(end);
@@ -77,6 +79,7 @@ function main() {
         if (url) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("Redirecting to Google Maps URL:", url);
             window.location.href = url;
             return false;
         }
@@ -85,6 +88,7 @@ function main() {
         if (url) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("Redirecting to Google Maps Directions URL:", url);
             window.location.href = url;
             return false;
         }
@@ -98,6 +102,7 @@ function main() {
         if (url) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("Opening Google Maps URL in new tab:", url);
             window.open(url, '_blank');
             return false;
         }
@@ -106,6 +111,7 @@ function main() {
         if (url) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("Opening Google Maps Directions URL in new tab:", url);
             window.open(url, '_blank');
             return false;
         }
