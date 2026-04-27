@@ -9,248 +9,109 @@ chrome.storage.sync.get("duckduckgoMapLinkChangerEnabled", (result) => {
 });
 
 function main() {
-    const googleMapsSearchUrl = "https://google.com/maps?q=";
-    const googleMapsDirectionUrl = "https://google.com/maps/dir/?api=1&destination=";
+    const googleMapsSearchUrl = "https://google.com/maps?";
+    const googleMapsDirectionUrl = "https://google.com/maps/dir/?api=1";
 
-
-    // Replace Maps in tab bar
-    const mapsTabObserver = new MutationObserver((mutations) => {
-        for (let mutation of mutations) {
-            if (mutation.type === "childList") {
-                for (let outerTab of mutation.addedNodes) {
-                    if (outerTab.nodeType !== Node.ELEMENT_NODE) {
-                        continue;
-                    }
-                    if (outerTab.innerText === "Maps") {
-                        // console.log("Found Maps tab:", outerTab);
-                        updateOuterTabMapsLink(outerTab);
-                    }
-                    
-                    if (outerTab.innerText && outerTab.innerText.includes("Maps") && outerTab.innerText.includes("More")) {
-                        // console.log("Found Maps tab in More submenu:", outerTab);
-                        let currNode = outerTab;
-                        while (currNode.hasChildNodes() && (currNode.innerText !== "Maps")) {
-                            for (let child of currNode.childNodes) {
-                                if (child.innerText && child.innerText.includes("Maps")) {
-                                    currNode = child;
-                                    break;
-                                }
-                            }
-                        }
-                        updateMapsLinkInMoreSubmenu(currNode);
-                    }
-                }
-            }
-        }
-    });
-    // Changes link in tab bar
-    let toolbarContainer = document.getElementById("react-duckbar");
-    mapsTabObserver.observe(toolbarContainer, { childList: true, subtree: true });
-
-
-    // Replace links in interactive map and directions button
-    let duckduckgoSearchBody = document.getElementById("react-layout");
-    // console.log("Found DuckDuckGo search body:", duckduckgoSearchBody);
-    // For the interactive map and directions button
-    const findInteractiveMapObserver = new MutationObserver((mutations) => {
-        for (let mutation of mutations) {
-            if (mutation.type === "childList") {
-                for (let bodyNode of mutation.addedNodes) {
-                    if (bodyNode.nodeType !== Node.ELEMENT_NODE) {
-                        continue;
-                    }
-                    // console.log("Checking added node for interactive map:", bodyNode);
-                    if (bodyNode.className === "react-module" && bodyNode.getAttribute("data-react-module-id") === "maps_maps") {
-                        // console.log("Found simple map container (no description, no editing):", bodyNode);
-                        waitForSimpleMap(bodyNode);
-                    }
-                    if (bodyNode.className === "mk-map-node-element") {
-                        let directionsInteractiveMap = bodyNode.closest("[class=\"react-module\"]");
-                        // console.log("Found interactive directions map container", directionsInteractiveMap);
-                        updateDirectionsInteractiveMap(directionsInteractiveMap);
-                    }
-                    if (bodyNode.getAttribute("data-testid") === "about-map") {
-                        let blurbMap = bodyNode.closest("[class=\"react-module\"]");
-                        // console.log("Found info blurb map container:", blurbMap);
-                        updateBlurbMap(blurbMap);
-                    }
-                }
-            }
-        }
-    });
-    findInteractiveMapObserver.observe(duckduckgoSearchBody, { childList: true, subtree: true });
-
-    function waitForSimpleMap(mapContainer) {
-        simpleMapObserver.observe(mapContainer, { childList: true, subtree: true });
-        findInteractiveMapObserver.disconnect();
-    }
-
-    const simpleMapObserver = new MutationObserver((mutations) => {
-        for (let mutation of mutations) {
-            if (mutation.type === "childList") {
-                for (let mapNode of mutation.addedNodes) {
-                    if (mapNode.nodeType !== Node.ELEMENT_NODE) {
-                        continue;
-                    }
-                    if (mapNode.querySelector("a") && mapNode.querySelector("button")) {
-                        console.log("Found interactive map image element:", mapNode); // Seems to be the last element added
-                        updateSimpleMap(mapNode);
-                        break;
-                    }
-                }
-            }
-        }
-    });
-
-    function updateMapsLink(mapsTabContainer) {
-        mapsTabObserver.disconnect();
-
-        let newMapsTab = mapsTabContainer.cloneNode(true);
-
-        const query = new URLSearchParams(window.location.search).get("q") || "";
-        let mapsLink = `${googleMapsSearchUrl}${encodeURIComponent(query)}`;
-
-        console.log("Updating Maps tab link to:", mapsLink);
-        newMapsTab.href = mapsLink;
-        // console.log(newMapsTab);
-
-        mapsTabContainer.parentNode.replaceChild(newMapsTab, mapsTabContainer);
-    }
-
-    function updateOuterTabMapsLink(outerTab) {
-        mapsTabObserver.disconnect();
-
-        let mapsTab = outerTab.getElementsByTagName("a")[0];
-        let newMapsTab = mapsTab.cloneNode(true);
-
-        const query = new URLSearchParams(window.location.search).get("q") || "";
-        let mapsLink = `${googleMapsSearchUrl}${encodeURIComponent(query)}`;
+    // Left click
+    document.addEventListener('click', function(e) {
+        const target = e.target;
         
-        console.log("Updating Maps tab link to:", mapsLink);
-        newMapsTab.href = mapsLink;
-        // console.log(newMapsTab);
-
-        outerTab.replaceChild(newMapsTab, mapsTab);
-    }
-
-    function updateMapsLinkInMoreSubmenu(mapsTabContainer) {
-        mapsTabObserver.disconnect();
-
-        let newMapsTab = mapsTabContainer.cloneNode(true);
-
-        const query = new URLSearchParams(window.location.search).get("q") || "";
-        let mapsLink = `${googleMapsSearchUrl}${encodeURIComponent(query)}`;
-
-        let mapsLinkContainer = newMapsTab.getElementsByTagName("a")[0];
-        console.log("Updating Maps tab in More submenu link to:", mapsLink);
-        mapsLinkContainer.href = mapsLink;
-        // console.log(newMapsTab);
-
-        mapsTabContainer.parentNode.replaceChild(newMapsTab, mapsTabContainer);
-    }
-
-    function updateSimpleMap(outerNode) {
-        simpleMapObserver.disconnect();
-
-        let simpleMap = outerNode.firstChild;
-        if (!simpleMap) {
-            console.log("Could not find simple map element inside:", outerNode);
-            return;
-        }
-        let newSimpleMap = simpleMap.cloneNode(true);
-
-        const query = new URLSearchParams(window.location.search).get("q") || "";
-        let mapsLink = `${googleMapsSearchUrl}${encodeURIComponent(query)}`;
-        let directionsLink = `${googleMapsDirectionUrl}${encodeURIComponent(query)}`;
-
-        console.log("Updating simple map links to:", mapsLink, directionsLink);
-        let expandButton = newSimpleMap.querySelector("a");
-        let directionsButton = newSimpleMap.querySelector("button");
-        newSimpleMap.addEventListener("click", (e) => {
-            e.preventDefault();
-            if (e.target.tagName === "BUTTON") {
-                window.open(directionsLink, "_self");
-            } else {
-                window.open(mapsLink, "_self");
-            }
-        });
-        console.log("Updating simple map expand button", mapsLink);
-        expandButton.href = mapsLink;
-        console.log(newSimpleMap);
-
-        simpleMap.parentNode.replaceChild(newSimpleMap, simpleMap);
-    }
-
-    function updateDirectionsInteractiveMap(outerNode) {
-        findInteractiveMapObserver.disconnect();
+        const isMapImage = target.alt === 'map' || target.src?.includes('external-content.duckduckgo.com/ssv2');
+        const mapLink = target.closest('[data-zci-link="maps"], a[href*="iaxm=maps"], a[href*="ia=maps"]');
         
-        let mapCanvas = outerNode.querySelector("canvas");
-        let mapCanvasContainer = mapCanvas.parentNode.parentNode.parentNode;
-        // console.log("mapCanvasContainer:", mapCanvasContainer);
-        let newMapCanvasContainer = mapCanvasContainer.cloneNode(false);
-
-        // ! Doesn't replace link but instead adds listener on top.
-        // newMapCanvasContainer.addEventListener("click", (e) => {
-        mapCanvasContainer.addEventListener("click", (e) => {
+        if (mapLink || isMapImage) {
             e.preventDefault();
             e.stopPropagation();
-            window.open(getFromToDirectionsLink(outerNode), "_self");
-        });
-        // mapCanvasContainer.parentNode.replaceChild(newMapCanvasContainer, mapCanvasContainer);
-
-        let footer = outerNode.querySelector("footer");
-        // let newFooter = footer.cloneNode(true);
-        let directionsButton = footer.querySelector("a");
-        let directionsButtonContainer = directionsButton.parentNode;
-        let newDirectionsButtonContainer = directionsButtonContainer.cloneNode(true);
-        let newDirectionsButton = newDirectionsButtonContainer.querySelector("a");
-        newDirectionsButton.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.open(getFromToDirectionsLink(outerNode), "_self");
-        });
-        newDirectionsButton.addEventListener("mouseup", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (e.button === 1) { // Middle click
-                window.open(getFromToDirectionsLink(outerNode), "_blank");
+            
+            let query = null;
+            if (mapLink && mapLink.href) {
+                const linkUrl = new URL(mapLink.href);
+                query = linkUrl.searchParams.get('q');
             }
-        });
-        directionsButtonContainer.parentNode.replaceChild(newDirectionsButtonContainer, directionsButtonContainer);
+            if (!query) {
+                query = new URLSearchParams(window.location.search).get('q');
+            }
+            
+            if (query) {
+                window.location.href = googleMapsSearchUrl + "&q=" + encodeURIComponent(query);
+            }
+            return false;
+        }
+    }, true);
+
+    // Middle click
+    document.addEventListener('auxclick', function(e) {
+        const target = e.target;
         
-        // TODO: replace integrated map completely with google embed maybe
-    }
-
-    function getFromToDirectionsLink(directionsMapContainer) {
-        let locationInputs = directionsMapContainer.querySelectorAll("input");
-        let fromLocationInput = locationInputs[0];
-        let toLocationInput = locationInputs[1];
-        let directionsLink = `${googleMapsDirectionUrl}${encodeURIComponent(toLocationInput.value)}&origin=${encodeURIComponent(fromLocationInput.value)}`;
-        return directionsLink;
-    }
-
-    function updateBlurbMap(outerNode) {
-        // ! Doesn't replace completely so both events are triggered
-        const query = new URLSearchParams(window.location.search).get("q") || "";
-        let mapsLink = `${googleMapsSearchUrl}${encodeURIComponent(query)}`;
-
-        let mapCanvas = outerNode.querySelector("img");
-        let newMapCanvas = mapCanvas.cloneNode(true);
-
-        newMapCanvas.addEventListener("click", (e) => {
+        const isMapImage = target.alt === 'map' || target.src?.includes('external-content.duckduckgo.com/ssv2');
+        const mapLink = target.closest('[data-zci-link="maps"], a[href*="iaxm=maps"], a[href*="ia=maps"]');
+        
+        if (mapLink || isMapImage) {
             e.preventDefault();
-            window.open(mapsLink, "_self");
-        });
-        mapCanvas.parentNode.replaceChild(newMapCanvas, mapCanvas);
+            e.stopPropagation();
+            
+            let query = null;
+            if (mapLink && mapLink.href) {
+                const linkUrl = new URL(mapLink.href);
+                query = linkUrl.searchParams.get('q');
+            }
+            if (!query) {
+                query = new URLSearchParams(window.location.search).get('q');
+            }
+            
+            if (query) {
+                if (e.button === 1) {
+                    window.open(googleMapsSearchUrl + "&q=" + encodeURIComponent(query), '_blank');
+                }
+            }
+            return false;
+        }
+    }, true);
 
-
-        let directionsButton = outerNode.querySelector("button");
-        let newDirectionsButton = directionsButton.cloneNode(true);
-
-        newDirectionsButton.addEventListener("click", (e) => {
+    document.addEventListener('click', function(e) {
+        console.log("Click event detected:", e);
+        const target = e.target;
+        
+        const directionsButton = target.closest('[data-zci-link="directions"], button[href*="iaxm=directions"], button[href*="ia=directions"]');
+        if (directionsButton) {
             e.preventDefault();
-            window.open(mapsLink, "_self");
-        });
-        directionsButton.parentNode.replaceChild(newDirectionsButton, directionsButton);
-    }
+            e.stopPropagation();
+
+            let source = null;
+            let end = null;
+            // TODO: Figure out duckduckgo transport modes
+            let transport = null;
+            
+            if (directionsButton.getAttribute('href')) {
+                const linkUrl = new URL(document.location.origin + directionsButton.getAttribute('href'));
+
+                source = linkUrl.searchParams.get('source');
+                end = linkUrl.searchParams.get('end');
+                transport = linkUrl.searchParams.get('transport');
+            }
+
+            // Prevent default duckduckgo source
+            if (source === "directions") {
+                source = null;
+            }
+
+            // Get query from URL if not found in link
+            if (!end) {
+                end = new URLSearchParams(window.location.search).get('q');
+            }
+            
+            if (end) {
+                // window.open(googleMapsSearchUrl + encodeURIComponent(query), '_blank');
+                let url = googleMapsDirectionUrl;
+                if (source) {
+                    url += "&origin=" + encodeURIComponent(source);
+                }
+                if (end) {
+                    url += "&destination=" + encodeURIComponent(end);
+                }
+                window.location.href = googleMapsDirectionUrl + encodeURIComponent(source) + encodeURIComponent(end);
+            }
+            return false;
+        }
+    }, true);
 }
