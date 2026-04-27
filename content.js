@@ -1,5 +1,12 @@
 chrome.storage.sync.get("duckduckgoMapLinkChangerEnabled", (result) => {
-    console.log("Retrieved duckduckgoMapLinkChangerEnabled setting:", result.duckduckgoMapLinkChangerEnabled);
+    // console.log("Retrieved duckduckgoMapLinkChangerEnabled setting:", result.duckduckgoMapLinkChangerEnabled);
+
+    // On by default
+    if (result.duckduckgoMapLinkChangerEnabled === undefined) {
+        // console.log("duckduckgoMapLinkChangerEnabled setting is undefined, defaulting to enabled.");
+        chrome.storage.sync.set({ duckduckgoMapLinkChangerEnabled: true });
+    }
+
     if (!result.duckduckgoMapLinkChangerEnabled) {
         console.log("DuckDuckGo Map Link Changer is disabled, not modifying links.");
         return;
